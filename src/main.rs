@@ -38,6 +38,12 @@ fn main() {
                         .takes_value(true),
                 )
                 .arg(
+                    Arg::new("match cutoff")
+                        .value_name("INT")
+                        .short('m')
+                        .takes_value(true),
+                )
+                .arg(
                     Arg::new("haplotigs2")
                         .value_name("HAPLOTIGS FILE")
                         .index(2)
@@ -110,9 +116,13 @@ fn main() {
         }
     }
     if matches.subcommand_name().unwrap() == "dist" {
-        let len_cutoff = 8;
+        let len_cutoff = 2;
         let error_cutoff = 0.0;
-        let match_cutoff = 5.;
+        let match_cutoff = matches
+            .value_of("match cutoff")
+            .unwrap_or("0")
+            .parse::<f64>()
+            .unwrap();
         let matches = matches.subcommand_matches("dist").unwrap();
         let file_name1 = matches.value_of("haplotigs1").unwrap();
         let file_name2 = matches.value_of("haplotigs2").unwrap();
