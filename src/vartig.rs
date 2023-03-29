@@ -39,6 +39,7 @@ pub struct VartigAln{
 pub struct Vartig {
     //closed interval
     pub name: String,
+    pub contig: String,
     pub index: usize,
     pub baserange: (usize, usize),
     pub snprange: (usize, usize),
@@ -61,13 +62,12 @@ pub fn get_vartigs_from_file(file_name: &str) -> Vec<Vartig> {
             let spl = l.split_whitespace();
             let mut vartig = Vartig::default();
             let spl_vec = spl.collect::<Vec<&str>>();
+            let name = &spl_vec[0][1..];
             let col = spl_vec[0][1..].split('_').collect::<Vec<&str>>();
-
-
-
             let tmp = col[0..col.len()-1].join("_").to_string();
             let remove = tmp.split('/').collect::<Vec<&str>>();
-            vartig.name = remove[remove.len()-1].to_string();
+            vartig.name = name.to_string();
+            vartig.contig = remove[remove.len()-1].to_string();
             vartig.snprange = get_range(spl_vec[1]);
             vartig.baserange = get_range(spl_vec[2]);
             vartig.cov = get_val(spl_vec[3]);

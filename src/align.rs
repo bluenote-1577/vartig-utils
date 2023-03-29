@@ -69,7 +69,7 @@ pub fn align_vartig(q_vartig: &[Vartig], r_vartig: &[Vartig]) -> Vec<VartigAln>{
         }
         let mut vartig_hits = vec![];
         for index in set_of_hits{
-            if r_vartig[index].name == vartig.name{
+            if r_vartig[index].contig == vartig.contig{
                 vartig_hits.push(&r_vartig[index]);
             }
         }

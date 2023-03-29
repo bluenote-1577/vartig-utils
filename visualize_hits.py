@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import cmasher as cmr
 from scipy import stats
 
 import numpy as np
@@ -13,10 +14,22 @@ def normal (x, normal_factor):
         return x/normal_factor
 
 
+threshold = [0.10,0.90]
+mult = 1.0
 plt.rcParams.update({'font.size': 7})
 plt.rcParams.update({'figure.autolayout': True})
 plt.rcParams.update({'font.family':'arial'})
 cm = 1/2.54  # centimeters in inches
+
+#cmap=plt.cm.PiYG
+
+#cmap = cmr.redshift
+#cmap = cmr.watermelon
+#cmap = cmr.neon
+cmap = cmr.tropical
+#cmap = cmr.bubblegum
+#cmap = cmr.iceburn
+#cmap=plt.cm.cividis
 
 
 import os
@@ -30,16 +43,18 @@ line_offset = 0.04
 contig = argv[1]
 haps = argv[2:]
 kde_weights_none = [None for _ in haps]
+avg_alt = 0
+avg_al_c = 0
 
 hap_covs = []
 kde_weights = [[] for _ in haps]
-len_cutoff = 2
+len_cutoff = 1
 cov_cutoff = 1.5
 dates = [0,3,4,5,41,48,49,301,339,346,354,360,391,446,452,473,476,516,542,553,614,622,627,636]
+vartig_to_allele_frac = dict()
 
 p = re.compile('COV:(\d*\.?\d+)')
 snp_p = re.compile('SNPRANGE:(\d+)-(\d+)')
-plt.title("haplotig correspondence from sample1 to sample 2 (each line is haplotig)")
 fig,ax = plt.subplots(2)
 fig.set_size_inches(17 * cm, 10 * cm)
 for hap in haps:
@@ -47,16 +62,30 @@ for hap in haps:
     curr_cov = 0
     for line in open(hap,'r'):
         if line[0] == '>':
+            name = line.split()[0][1:]
+            vartig_to_allele_frac[name] = 0
             ar = p.findall(line)
             curr_cov = float(ar[0])
         else:
+            total_alt = 0
             al_c = 0
+            num_zero = 0
             for x in line:
                 if x == '0' or x == '1' or x == '2':
                     al_c += 1
+                if x == '1' or x == '2':
+                    total_alt += 1 
+                else:
+                    num_zero += 1
             if al_c > len_cutoff and al_c > cov_cutoff:
                 hap_covs[-1].append(curr_cov)
+                vartig_to_allele_frac[name] = [al_c, total_alt]
+                avg_alt += total_alt
+                avg_al_c += al_c
 
+
+avg_minor = avg_alt / avg_al_c
+print(avg_minor)
 
 haps = [shlex.quote(x) for x in haps]
 
@@ -71,6 +100,7 @@ for i in range(len(haps)-1):
     count = 0
     hc_1 = hcs[i]
     hc_2 = hcs[i+1]
+    line_colors = []
 
     os.system(f"vtig map {haps[i]} {haps[i+1]} -m {len_cutoff} > x")
     os.system(f"vtig dist {haps[i]} {haps[i+1]} -m {len_cutoff}")
@@ -89,9 +119,19 @@ for i in range(len(haps)-1):
             kde_weights[i].append(float(spl[2]))
             kde_weights[i+1].append(float(spl[2]))
             lines.append([(i,x[-1]),(i+1,y[-1])])
+            vals1 =  vartig_to_allele_frac[spl[0]]
+            vals2 =  vartig_to_allele_frac[spl[1]]
+            val = (vals1[1]+ vals2[1])/(vals1[0] + vals2[0])
+            #if val > avg_minor:
+            #    val = 1
+            #else: 
+            #    val = 0
+            adj = 0.5 - avg_minor
+            val = (val + adj) * mult;
+            line_colors.append(np.max([np.min([val, threshold[1]]), threshold[0]]))
             tt = 1
             #widths.append(min(float(spl[3])/600, 1))
-            widths.append(1/100)
+            widths.append(1/50)
             #plt.plot([i,i+1],[x[-1],y[-1]], 'b', alpha = min(float(spl[3]) / 1000,1))
             #plt.plot([i,i+1],[x[-1],y[-1]], 'b', alpha = float(0.01))
         else:
@@ -99,6 +139,7 @@ for i in range(len(haps)-1):
         count += 1
 
 
+    line_colors = np.array(line_colors)
     mean_x = np.mean(hap_covs[i]) 
     mean_y = np.mean(hap_covs[i+1])
     #mean_x = 1
@@ -106,8 +147,12 @@ for i in range(len(haps)-1):
     #lines_normal = [[(i, x[j]/mean_x),(i+1,y[j]/mean_y)] for j in range(len(x))]
     lines_normal = [[(i+line_offset, normal(x[j], mean_normal)),(i+1 - line_offset,normal(y[j], mean_normal))] for j in range(len(x))]
     lines = [[(i+line_offset, x[j]),(i+1-line_offset,y[j])] for j in range(len(x))]
-    lc = mc.LineCollection(lines, linewidths=widths)
-    lc_normal = mc.LineCollection(lines_normal, linewidths=widths)
+    lc = mc.LineCollection(lines, linewidths=widths, array = line_colors, cmap = cmap, alpha = 0.6)
+    lc_normal = mc.LineCollection(lines_normal, linewidths=widths, array = line_colors, cmap = cmap, alpha = 0.6)
+
+    #lc = mc.LineCollection(lines, linewidths=widths, array = line_colors)
+    #lc_normal = mc.LineCollection(lines_normal, linewidths=widths, array = line_colors)
+
     ax[0].add_collection(lc)
     ax[1].add_collection(lc_normal)
     #print(count_miss, count)
@@ -175,7 +220,8 @@ ax[0].spines['right'].set_visible(False)
 ax[1].spines['top'].set_visible(False)
 ax[1].spines['right'].set_visible(False)
 
-ax[0].set_title(f"{contig}")
+ax[0].set_title(f"{contig} haplotig correspondence from sample1 to sample 2 (each line is haplotig)")
+plt.colorbar(lc)
 plt.xlabel("Days since first sample")
 plt.savefig(f"24_track_{contig}.png", dpi = 300)
 plt.tight_layout()
