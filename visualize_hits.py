@@ -1,4 +1,6 @@
 import matplotlib.pyplot as plt
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+
 import cmasher as cmr
 from scipy import stats
 
@@ -25,8 +27,9 @@ cm = 1/2.54  # centimeters in inches
 
 #cmap = cmr.redshift
 #cmap = cmr.watermelon
-#cmap = cmr.neon
-cmap = cmr.tropical
+cmap = cmr.neon
+#cmap = cmr.tropical
+#cmap = cmr.pride
 #cmap = cmr.bubblegum
 #cmap = cmr.iceburn
 #cmap=plt.cm.cividis
@@ -47,8 +50,8 @@ avg_alt = 0
 avg_al_c = 0
 
 hap_covs = []
-kde_weights = [[] for _ in haps]
-len_cutoff = 1
+kde_weights = []
+len_cutoff = 2
 cov_cutoff = 1.5
 dates = [0,3,4,5,41,48,49,301,339,346,354,360,391,446,452,473,476,516,542,553,614,622,627,636]
 vartig_to_allele_frac = dict()
@@ -59,6 +62,7 @@ fig,ax = plt.subplots(2)
 fig.set_size_inches(17 * cm, 10 * cm)
 for hap in haps:
     hap_covs.append([])
+    kde_weights.append([])
     curr_cov = 0
     for line in open(hap,'r'):
         if line[0] == '>':
@@ -79,6 +83,7 @@ for hap in haps:
                     num_zero += 1
             if al_c > len_cutoff and al_c > cov_cutoff:
                 hap_covs[-1].append(curr_cov)
+                kde_weights[-1].append(al_c)
                 vartig_to_allele_frac[name] = [al_c, total_alt]
                 avg_alt += total_alt
                 avg_al_c += al_c
@@ -116,8 +121,6 @@ for i in range(len(haps)-1):
             y.append(float(spl[6]))
             hc_1.append(x[-1])
             hc_2.append(y[-1])
-            kde_weights[i].append(float(spl[2]))
-            kde_weights[i+1].append(float(spl[2]))
             lines.append([(i,x[-1]),(i+1,y[-1])])
             vals1 =  vartig_to_allele_frac[spl[0]]
             vals2 =  vartig_to_allele_frac[spl[1]]
@@ -126,12 +129,13 @@ for i in range(len(haps)-1):
             #    val = 1
             #else: 
             #    val = 0
-            adj = 0.5 - avg_minor
+            #adj = 0.5 - avg_minor
+            adj = 0
             val = (val + adj) * mult;
             line_colors.append(np.max([np.min([val, threshold[1]]), threshold[0]]))
             tt = 1
-            #widths.append(min(float(spl[3])/600, 1))
-            widths.append(1/50)
+            widths.append(float(spl[3])/500)
+            #widths.append(1/50)
             #plt.plot([i,i+1],[x[-1],y[-1]], 'b', alpha = min(float(spl[3]) / 1000,1))
             #plt.plot([i,i+1],[x[-1],y[-1]], 'b', alpha = float(0.01))
         else:
@@ -171,8 +175,10 @@ for i in range(len(hap_covs) - 1):
     ms = 1
     bw = None
 
+    print(len(kde_weights[i]))
+    print(len(hap_covs[i]))
     norm_vals = normal(hap_covs[i], mean_normal)
-    kde_norm = stats.gaussian_kde(norm_vals, bw_method = bw, weights = kde_weights_none[i])
+    kde_norm = stats.gaussian_kde(norm_vals, bw_method = bw, weights = kde_weights[i])
     kde_norm.bw_method = bw
     c_norm = kde_norm(norm_vals)
 
@@ -182,7 +188,7 @@ for i in range(len(hap_covs) - 1):
     #exit()
 
 
-    kde = stats.gaussian_kde(hap_covs[i], weights = kde_weights_none[i])
+    kde = stats.gaussian_kde(hap_covs[i], weights = kde_weights[i])
     kde.bw_method = bw
     c = kde(hap_covs[i])
 
@@ -193,16 +199,17 @@ for i in range(len(hap_covs) - 1):
 
     if i == len(hap_covs) - 2:
         norm_vals = normal(hap_covs[i+1], mean_normal)
-        kde_norm = stats.gaussian_kde(norm_vals, weights = kde_weights_none[i+1])
+        kde_norm = stats.gaussian_kde(norm_vals, weights = kde_weights[i+1])
         kde_norm.bw_method = bw
         c_norm = kde_norm(norm_vals)
 
-        kde = stats.gaussian_kde(hap_covs[i+1], weights = kde_weights_none[i+1])
+        kde = stats.gaussian_kde(hap_covs[i+1], weights = kde_weights[i+1])
         kde.bw_method = bw
         c = kde(hap_covs[i+1])
 
         ax[1].scatter(twos, norm_vals, c = c_norm, cmap = "binary", s = ms, alpha = 1)
         ax[0].scatter(twos, hap_covs[i+1], c = c, cmap = "binary", s = ms, alpha = 1)
+
 
 if len(hcs) == len(dates):
     ax[0].set_xticks([])
@@ -214,16 +221,19 @@ ymax_norm = np.max([np.percentile(normal(hap_covs[i],mean_normal), 99) for i in 
 ax[0].set_ylim([0,ymax])
 ax[1].set_ylim([0,ymax_norm])
 ax[0].set_ylabel("Coverage")
-ax[1].set_ylabel("Log2 coverage")
+ax[1].set_ylabel("Log2(coverage+1)")
 ax[0].spines['top'].set_visible(False)
 ax[0].spines['right'].set_visible(False)
 ax[1].spines['top'].set_visible(False)
 ax[1].spines['right'].set_visible(False)
 
-ax[0].set_title(f"{contig} haplotig correspondence from sample1 to sample 2 (each line is haplotig)")
-plt.colorbar(lc)
+ax[0].set_title(f"{contig} Anaerostipes hadrus")
 plt.xlabel("Days since first sample")
-plt.savefig(f"24_track_{contig}.png", dpi = 300)
+fig.colorbar(lc,  ax=ax[0], label = "Alternate allele ratio")
+#fig.colorbar(lc,  ax=ax[1])
+
+
 plt.tight_layout()
+plt.savefig(f"24_track_{contig}.png", dpi = 300)
 plt.show()
 

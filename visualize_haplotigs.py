@@ -73,7 +73,7 @@ for line in open(hap,'r'):
                 print(line, curr_cov)
                 continue
             hap_cov.append(curr_cov)
-            lines.append([(baserange[0], (curr_cov+1)), (baserange[1] + 5000, (curr_cov+1))])
+            lines.append([(baserange[0], (curr_cov+1)), (baserange[1], (curr_cov+1))])
             line_colors.append(total_alt / al_c)
             widths.append(4)
 
@@ -81,8 +81,19 @@ lc = mc.LineCollection(lines, linewidths=widths, array = np.array(line_colors), 
 print(lc)
 
 fig, ax = plt.subplots()
+fig.set_size_inches(8 * cm, 6 * cm)
 ax.add_collection(lc)
 ax.set_xlim(0, max_br)
 ax.set_ylim(np.min(hap_cov)-5, np.max(hap_cov) + 5)
+ax.spines['top'].set_visible(False)
+ax.spines['right'].set_visible(False)
+plt.xlabel("Base position")
+plt.ylabel("Average coverage of vartig")
+t = hap.split('-')[0]
+plt.title(t)
+#fig.colorbar(lc, label = "Alternate allele ratio")
+
+plt.tight_layout()
+plt.savefig(f"vartig-plot_{hap}.png", dpi = 300)
 plt.show()
 
