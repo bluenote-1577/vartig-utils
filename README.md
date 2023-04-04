@@ -1,7 +1,7 @@
 # vartig-utils - utilities for processing and aligning vartigs between samples
 
 
-##TODO INTERNAL - JIM:
+## TODO INTERNAL - JIM:
 
 This is the repo I used for generating strain tracking information and visualize vartigs. The "vartig" files below mean the glopp-out-dir/contig/haplotigs.fa file. 
 
