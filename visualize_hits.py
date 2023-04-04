@@ -112,6 +112,10 @@ for i in range(len(haps)-1):
     os.system(f"vtig map {haps[i]} {haps[i+1]} -m {len_cutoff} > x")
     os.system(f"vtig dist {haps[i]} {haps[i+1]} -m {len_cutoff}")
     for line in open("x",'r'):
+        #first line
+        if 'name1' in line:
+            continue
+
         if line[0] == "#":
             continue
         spl = line.split()
