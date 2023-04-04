@@ -81,6 +81,9 @@ sample1/NZ_AP024085.1_HAP16   sample2/NZ_AP024085.1_HAP14 1.000       7       0 
 - snp_range1/2: the range of SNPs covered by the vartig
 - base_range1/2: the range of bases on the contig covered by the vartig
 
+The output for `python visualize_vartigs.py` looks like this:
+![xx](https://github.com/bluenote-1577/vartig-utils/visualize-vartig-example.png?raw=true)
+
 ## Citation
 
 TODO
