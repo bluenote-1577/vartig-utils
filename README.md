@@ -82,7 +82,14 @@ sample1/NZ_AP024085.1_HAP16   sample2/NZ_AP024085.1_HAP14 1.000       7       0 
 - base_range1/2: the range of bases on the contig covered by the vartig
 
 The output for `python visualize_vartigs.py` looks like this:
-![xx](https://github.com/bluenote-1577/vartig-utils/visualize-vartig-example.png?raw=true)
+
+![Visualization example](https://github.com/bluenote-1577/vartig-utils/blob/main/visualize-vartig-example.png)
+
+Each bar represents a vartig in the file. 
+
+- The color in the top plot represents the fraction of alternate alleles in the vartig. For example, if the vartig has all alternate SNPs, then it will have 1.0 alternate allele fraction.
+- The color in the bottom plot represents the HAPQ, which is a heuristic measure of phasing ambiguity between 0-60, analogous to MAPQ. Notice the small blocks have low HAPQ, most likely indicating they're spurious. 
+
 
 ## Citation
 
