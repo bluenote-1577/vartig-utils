@@ -16,7 +16,7 @@ def normal (x, normal_factor):
         return x/normal_factor
 
 
-threshold = [0.10,0.90]
+threshold = [0.25,0.75]
 mult = 1.0
 plt.rcParams.update({'font.size': 7})
 plt.rcParams.update({'figure.autolayout': True})
@@ -24,13 +24,14 @@ plt.rcParams.update({'font.family':'arial'})
 cm = 1/2.54  # centimeters in inches
 
 #cmap=plt.cm.PiYG
+#cmap = plt.cm.viridis_r
 
 #cmap = cmr.redshift
 #cmap = cmr.watermelon
 cmap = cmr.neon
 #cmap = cmr.tropical
 #cmap = cmr.pride
-#cmap = cmr.bubblegum
+#cmap = cmr.bubblegum_r
 #cmap = cmr.iceburn
 #cmap=plt.cm.cividis
 
@@ -51,7 +52,7 @@ avg_al_c = 0
 
 hap_covs = []
 kde_weights = []
-len_cutoff = 2
+len_cutoff = 1
 cov_cutoff = 1.5
 dates = [0,3,4,5,41,48,49,301,339,346,354,360,391,446,452,473,476,516,542,553,614,622,627,636]
 vartig_to_allele_frac = dict()
@@ -61,13 +62,14 @@ snp_p = re.compile('SNPRANGE:(\d+)-(\d+)')
 fig,ax = plt.subplots(2)
 fig.set_size_inches(17 * cm, 10 * cm)
 for hap in haps:
+    print(hap)
     hap_covs.append([])
     kde_weights.append([])
     curr_cov = 0
     for line in open(hap,'r'):
         if line[0] == '>':
             name = line.split()[0][1:]
-            vartig_to_allele_frac[name] = 0
+            vartig_to_allele_frac[name] = None
             ar = p.findall(line)
             curr_cov = float(ar[0])
         else:
@@ -124,6 +126,8 @@ for i in range(len(haps)-1):
             lines.append([(i,x[-1]),(i+1,y[-1])])
             vals1 =  vartig_to_allele_frac[spl[0]]
             vals2 =  vartig_to_allele_frac[spl[1]]
+            if vals1 is None or vals2 is None:
+                continue
             val = (vals1[1]+ vals2[1])/(vals1[0] + vals2[0])
             #if val > avg_minor:
             #    val = 1
@@ -134,8 +138,8 @@ for i in range(len(haps)-1):
             val = (val + adj) * mult;
             line_colors.append(np.max([np.min([val, threshold[1]]), threshold[0]]))
             tt = 1
-            widths.append(float(spl[3])/500)
-            #widths.append(1/50)
+            #widths.append(float(spl[3])/500)
+            widths.append(1/50)
             #plt.plot([i,i+1],[x[-1],y[-1]], 'b', alpha = min(float(spl[3]) / 1000,1))
             #plt.plot([i,i+1],[x[-1],y[-1]], 'b', alpha = float(0.01))
         else:
@@ -151,8 +155,8 @@ for i in range(len(haps)-1):
     #lines_normal = [[(i, x[j]/mean_x),(i+1,y[j]/mean_y)] for j in range(len(x))]
     lines_normal = [[(i+line_offset, normal(x[j], mean_normal)),(i+1 - line_offset,normal(y[j], mean_normal))] for j in range(len(x))]
     lines = [[(i+line_offset, x[j]),(i+1-line_offset,y[j])] for j in range(len(x))]
-    lc = mc.LineCollection(lines, linewidths=widths, array = line_colors, cmap = cmap, alpha = 0.6)
-    lc_normal = mc.LineCollection(lines_normal, linewidths=widths, array = line_colors, cmap = cmap, alpha = 0.6)
+    lc = mc.LineCollection(lines, linewidths=widths, array = line_colors, cmap = cmap, alpha = 0.5)
+    lc_normal = mc.LineCollection(lines_normal, linewidths=widths, array = line_colors, cmap = cmap, alpha = 0.5)
 
     #lc = mc.LineCollection(lines, linewidths=widths, array = line_colors)
     #lc_normal = mc.LineCollection(lines_normal, linewidths=widths, array = line_colors)
@@ -227,9 +231,16 @@ ax[0].spines['right'].set_visible(False)
 ax[1].spines['top'].set_visible(False)
 ax[1].spines['right'].set_visible(False)
 
-ax[0].set_title(f"{contig} Anaerostipes hadrus")
+if "NZ" in contig:
+    title = f"{contig} Faecalibacillus intestinalis"
+else:
+    title = f"{contig} Anaerostipes hadrus"
+
+ax[0].set_title(title)
 plt.xlabel("Days since first sample")
-fig.colorbar(lc,  ax=ax[0], label = "Alternate allele ratio")
+#ax[2].axis('off')
+fig.colorbar(lc, ax = ax[0], label = "Alternate allele ratio")
+fig.colorbar(lc, ax = ax[1], label = "Alternate allele ratio")
 #fig.colorbar(lc,  ax=ax[1])
 
 

@@ -16,7 +16,12 @@ import subprocess
 import shlex
 p = re.compile('COV:(\d*\.?\d+)')
 snp_p = re.compile('BASERANGE:(\d+)-(\d+)')
+hapq_p = re.compile('HAPQ:(\d+)')
+if len(argv) > 2:
+    hapq_cut = int(argv[2])
 
+else:
+    hapq_cut = 0
 
 
 threshold = [0.00,1.00]
@@ -28,19 +33,24 @@ cm = 1/2.54  # centimeters in inches
 len_cutoff = 5000
 
 cmap = cmr.neon
+#cmap = plt.cm.viridis_r
+cmap_hq = plt.cm.binary
 hap = argv[1]
 hap_cov = []
 lines = []
 line_colors = []
+line_colors_hapq = []
 cov_cutoff = 1.5
 widths = []
 max_br = 0
 cont = False
+hapq_fail = False
 for line in open(hap,'r'):
     if line[0] == '>':
         name = line.split()[0][1:]
         ar = p.findall(line)
         br = snp_p.findall(line)
+        hapr = hapq_p.findall(line)
         if len(ar) == 0:
             cont = True
             print(line)
@@ -48,10 +58,16 @@ for line in open(hap,'r'):
         curr_cov = float(ar[0])
         start = int(br[0][0])
         end = int(br[0][1])
+        hapq = int(hapr[0])
+        if hapq > 60:
+            hapq = 60
+        print(hapq)
+        baserange = (start,end)
         if end - start < len_cutoff:
             cont = True
             continue
-        baserange = (start,end)
+        if hapq < hapq_cut:
+            hapq_fail = True
         if end > max_br:
             max_br = end
     else:
@@ -73,27 +89,35 @@ for line in open(hap,'r'):
                 print(line, curr_cov)
                 continue
             hap_cov.append(curr_cov)
-            lines.append([(baserange[0], (curr_cov+1)), (baserange[1], (curr_cov+1))])
+            lines.append([(baserange[0], (curr_cov+1)), (baserange[1] + 5000, (curr_cov+1))])
             line_colors.append(total_alt / al_c)
-            widths.append(4)
+            line_colors_hapq.append(hapq)
+            if hapq_fail:
+                hapq_fail = False
+                widths.append(1)
+            else:
+                widths.append(4)
+        else:
+            hapq_fail = False
 
 lc = mc.LineCollection(lines, linewidths=widths, array = np.array(line_colors), cmap = cmap, alpha = 1.0)
+lc_hq = mc.LineCollection(lines, linewidths=widths, array = np.array(line_colors_hapq), cmap = cmap_hq, alpha = 1.0)
+lc_hq.set_clim(vmin=0, vmax=60)
 print(lc)
 
-fig, ax = plt.subplots()
-fig.set_size_inches(8 * cm, 6 * cm)
-ax.add_collection(lc)
-ax.set_xlim(0, max_br)
-ax.set_ylim(np.min(hap_cov)-5, np.max(hap_cov) + 5)
-ax.spines['top'].set_visible(False)
-ax.spines['right'].set_visible(False)
-plt.xlabel("Base position")
-plt.ylabel("Average coverage of vartig")
-t = hap.split('-')[0]
-plt.title(t)
-#fig.colorbar(lc, label = "Alternate allele ratio")
+fig, ax = plt.subplots(2)
+ax[0].add_collection(lc)
+ax[0].set_xlim(0, max_br)
+ax[0].set_ylim(np.min(hap_cov)-5, np.max(hap_cov) + 5)
+fig.colorbar(lc, ax=ax[0], orientation='vertical')
+fig.colorbar(lc_hq, ax=ax[1], orientation='vertical')
 
-plt.tight_layout()
-plt.savefig(f"vartig-plot_{hap}.png", dpi = 300)
+
+
+ax[1].add_collection(lc_hq)
+ax[1].set_xlim(0, max_br)
+ax[1].set_ylim(np.min(hap_cov)-5, np.max(hap_cov) + 5)
+ax[0].set_title("Colored by alternate allele ratio")
+ax[1].set_title("Colored by HAPQ")
 plt.show()
 
