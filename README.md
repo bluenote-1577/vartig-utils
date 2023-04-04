@@ -53,7 +53,7 @@ vtig map vartig1 vartig2 -m minimum_match_length
 python visualize_vartigs.py vartig1
 
 # track vartigs between samples. REQUIRES `vtig` command to be in path. 
-python track_vartigs.py vartig1 vartig2 vartig3
+python track_vartigs.py CONTIG_NAME vartig1 vartig2 vartig3
 
 ```
 All above scripts/commands work **only if** vartigs are generated from **the exact same vcf and reference**. 
