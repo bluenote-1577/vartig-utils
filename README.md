@@ -1,4 +1,4 @@
-# vartig-utils - utilities for processing and aligning vartigs between samples
+# vartig-utils - utilities for processing and visualizing vartigs
 
 
 ## TODO INTERNAL - JIM
@@ -7,18 +7,22 @@ This is the repo I used for generating strain tracking information and visualize
 
 ## Introduction
 
-This is a companion repository for processing outputs from our software TODO. We currently support mapping of vartigs between samples
-(e.g. to track strains longitudinally) or computing statistics between vartigs. 
+This is a companion repository for processing outputs from our software TODO. We currently support 
 
-This repo also contains scripts for visualizing vartigs.
+1. mapping of vartigs between samples (e.g. to track strains longitudinally)
+2. computing statistics between vartigs
+3. scripts for visualizing vartigs.
 
 ### Installation
 
 Requirements:
+
+For mapping vartigs:
+
 1. [rust](https://www.rust-lang.org/tools/install) programming language and associated tools such as cargo are required and assumed to be in PATH.
 2. A c compiler (e.g. GCC)
 
-For the python scripts:
+For the python visualization scripts:
 
 1. numpy
 2. scipy
