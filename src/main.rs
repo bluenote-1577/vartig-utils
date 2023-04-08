@@ -119,7 +119,7 @@ fn main() {
             }
             if aln.same + aln.diff > match_cutoff {
                 println!(
-                    "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}-{}\t{}-{}\t{}-{}\t{}-{}",
+                    "{}\t{}\t{:.4}\t{}\t{}\t{:.4}\t{:.4}\t{}-{}\t{}-{}\t{}-{}\t{}-{}",
                     aln.name1,
                     aln.name2,
                     aln.snp_identity,
