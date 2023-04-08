@@ -90,6 +90,7 @@ fn main() {
         let mut good_matches = vec![];
         for aln in backward.iter() {
             backward_match_set.insert((&aln.name2, &aln.name1));
+            //dbg!(&aln.name1, &aln.name2, aln.snp_range1, aln.snp_range2, aln.same, aln.diff);
         }
         for aln in forward {
             if backward_match_set.contains(&(&aln.name1, &aln.name2)) {
@@ -118,15 +119,17 @@ fn main() {
                 used_matches.insert(aln.name1.clone());
             }
             if aln.same + aln.diff > match_cutoff {
+                let cov1_str = if aln.cov1.is_none() {1.} else {aln.cov1.unwrap()};
+                let cov2_str = if aln.cov2.is_none() {1.} else {aln.cov2.unwrap()};
                 println!(
-                    "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}-{}\t{}-{}\t{}-{}\t{}-{}",
+                    "{}\t{}\t{:.4}\t{}\t{}\t{}\t{}\t{}-{}\t{}-{}\t{}-{}\t{}-{}",
                     aln.name1,
                     aln.name2,
                     aln.snp_identity,
                     aln.same,
                     aln.diff,
-                    aln.cov1,
-                    aln.cov2,
+                    cov1_str,
+                    cov2_str,
                     aln.snp_range1.0,
                     aln.snp_range1.1,
                     aln.snp_range2.0,
@@ -162,8 +165,11 @@ fn main() {
             .unwrap();
         let tig1 = vartig::get_vartigs_from_file(&file_name1);
         let tig2 = vartig::get_vartigs_from_file(&file_name2);
-        let avg_cov_1 = tig1.iter().map(|x| x.cov).sum::<f64>() / (tig1.len() as f64);
-        let avg_cov_2 = tig2.iter().map(|x| x.cov).sum::<f64>() / (tig2.len() as f64);
+
+        println!("Finished reading vartig files.");
+
+        //let avg_cov_1 = tig1.iter().map(|x| x.cov).sum::<f64>() / (tig1.len() as f64);
+        //let avg_cov_2 = tig2.iter().map(|x| x.cov).sum::<f64>() / (tig2.len() as f64);
 
         let forward = align::align_vartig(&tig1, &tig2);
         let backward = align::align_vartig(&tig2, &tig1);
@@ -200,15 +206,15 @@ fn main() {
             .map(|x| x.allele_vec.len())
             .sum();
 
-        let mut cov_disc = 0.;
+        let mut _cov_disc = 0.;
         let mut aligned_ctgs_1: HashSet<String> = HashSet::default();
         let mut aligned_ctgs_2: HashSet<String> = HashSet::default();
         let mut total_aligned = 0.;
         let mut errors = 0.;
-        dbg!(match_cutoff);
+        //dbg!(match_cutoff);
         for aln in good_matches.iter() {
             if aln.same + aln.diff > match_cutoff {
-                cov_disc += f64::abs((aln.cov1 / avg_cov_1 * avg_cov_2 / aln.cov2).log(2.));
+                //cov_disc += f64::abs((aln.cov1 / avg_cov_1 * avg_cov_2 / aln.cov2).log(2.));
                 if tig1_pass.contains(&aln.name1) || tig2_pass.contains(&aln.name2) {
                     total_aligned += aln.same + aln.diff;
                     errors += aln.diff
@@ -233,7 +239,7 @@ fn main() {
             .collect::<Vec<&vartig::Vartig>>()
             .len();
 
-        let cov_disc = cov_disc / (good_matches.len() as f64);
+        let _cov_disc = _cov_disc / (good_matches.len() as f64);
         println!(
             "{}\t{}\t{}\t{}\t{}\t{}",
             "err_rate",

@@ -22,7 +22,7 @@ fn hit_score(v1: &Vartig, v2: &Vartig) -> f64{
     let (same,diff) = same_diff(v1,v2);
     
     //let mult = v1.err + v2.err;
-    let score = same * (0.20) - diff;
+    let score = same * (0.20) - diff + 100.;
     //let score = same - diff;
     //let score = same;
     if score.is_nan(){
@@ -33,14 +33,37 @@ fn hit_score(v1: &Vartig, v2: &Vartig) -> f64{
 
 }
 
+fn overlap_percent(x1: usize, x2: usize, y1: usize, y2: usize) -> f64 {
+    let intersect = usize::max(usize::min(x2 - y1 + 1, y2 - x1 + 1), 0);
+    let min_length = usize::min(x2 - x1 + 1, y2-y1 + 1);
+    let p = intersect as f64 / min_length as f64;
+    if p > 1. {
+        return 1.;
+    //        println!("{},{},{},{}",x1,x2,y1,y2);
+    //        panic!();
+    } else {
+        return p;
+    }
+}
+
 fn overlap(v1: &Vartig, v2: &Vartig) -> bool{
     if v1.snprange.1 >= v2.snprange.0 &&
         v1.snprange.0 <= v2.snprange.1{
+            if overlap_percent(v1.snprange.0, v1.snprange.1, v2.snprange.0, v2.snprange.1) > 0.1{
             return true;
+            }
+            else{
+                return false;
+            }
     }
     if v2.snprange.1 >= v1.snprange.0 &&
         v2.snprange.0 <= v1.snprange.1{
+            if overlap_percent(v1.snprange.0, v1.snprange.1, v2.snprange.0, v2.snprange.1) > 0.1{
             return true;
+            }
+            else{
+                return false;
+            }
     }
 
     return false;
@@ -69,7 +92,10 @@ pub fn align_vartig(q_vartig: &[Vartig], r_vartig: &[Vartig]) -> Vec<VartigAln>{
         }
         let mut vartig_hits = vec![];
         for index in set_of_hits{
-            if r_vartig[index].contig == vartig.contig{
+            if vartig.contig.is_none() || r_vartig[index].contig.is_none(){
+                vartig_hits.push(&r_vartig[index]);
+            }
+            else if vartig.contig == r_vartig[index].contig{
                 vartig_hits.push(&r_vartig[index]);
             }
         }
@@ -96,15 +122,17 @@ fn dp_align<'a>(q_vartig: &Vartig, vartig_hits: &Vec<&'a Vartig>) -> Vec<VartigA
     let mut traceback :Vec<usize> = (0..scores.len()).collect();
     let mut best_scores = scores.clone();
     for i in 0..vartig_hits.len(){
-        let mut curr_best_score = best_scores[i];
+        let mut curr_best_score = scores[i];
         let v1 = &vartig_hits[i];
         let min_ind = i64::max(0, i as i64 - max_band);
         for j in min_ind as usize ..i{
             let v2 = &vartig_hits[j];
-            if !overlap(v1,v2){
-                if best_scores[i] + scores[j] > curr_best_score{
+            let ol = overlap(v1,v2);
+            //println!("NAME: {}, {} {}-{}, {}-{}; {}",&q_vartig.name, ol, v1.snprange.0, v1.snprange.1, v2.snprange.0, v2.snprange.1, scores[j]);
+            if !ol{
+                if scores[i] + best_scores[j] > curr_best_score{
                     traceback[i] = j;
-                    curr_best_score = best_scores[i] + scores[j]
+                    curr_best_score = scores[i] + best_scores[j]
                 }
             }
         }

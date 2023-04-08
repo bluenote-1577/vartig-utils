@@ -1,24 +1,26 @@
-use std::fs::File;
+use regex::Regex;
 use std::collections::HashMap;
+use std::fs::File;
 use std::hash::{Hash, Hasher};
 use std::io::{prelude::*, BufReader};
 
-
-fn get_range(token: &str) -> (usize, usize){
-        let range = token.split(':').collect::<Vec<&str>>()[1].split('-').collect::<Vec<&str>>();
-        let r1 = range[0].parse::<usize>().unwrap();
-        let r2 = range[1].parse::<usize>().unwrap();
-        return (r1,r2);
+fn get_range(token: &str) -> (usize, usize) {
+    let range = token.split(':').collect::<Vec<&str>>()[1]
+        .split('-')
+        .collect::<Vec<&str>>();
+    let r1 = range[0].parse::<usize>().unwrap();
+    let r2 = range[1].parse::<usize>().unwrap();
+    return (r1, r2);
 }
 
-fn get_val(token: &str) -> f64{
-        let val = token.split(':').collect::<Vec<&str>>()[1];
-        let ret =  val.parse::<f64>().unwrap();
-        return ret;
+fn get_val(token: &str) -> f64 {
+    let val = token.split(':').collect::<Vec<&str>>()[1];
+    let ret = val.parse::<f64>().unwrap();
+    return ret;
 }
 
 #[derive(Default, Debug, Clone, PartialEq)]
-pub struct VartigAln{
+pub struct VartigAln {
     pub name1: String,
     pub name2: String,
     pub vtig1_len: usize,
@@ -29,8 +31,8 @@ pub struct VartigAln{
     pub base_range2: (usize, usize),
     pub snp_identity: f64,
     pub gapless_base_identity: f64,
-    pub cov1: f64,
-    pub cov2: f64,
+    pub cov1: Option<f64>,
+    pub cov2: Option<f64>,
     pub diff: f64,
     pub same: f64,
 }
@@ -39,14 +41,14 @@ pub struct VartigAln{
 pub struct Vartig {
     //closed interval
     pub name: String,
-    pub contig: String,
+    pub contig: Option<String>,
     pub index: usize,
-    pub baserange: (usize, usize),
     pub snprange: (usize, usize),
-    pub allele_vec: HashMap<usize,i8>,
-    pub err: f64,
-    pub cov: f64,
-    pub hapq: f64
+    pub allele_vec: HashMap<usize, i8>,
+    pub baserange: (usize, usize),
+    pub err: Option<f64>,
+    pub cov: Option<f64>,
+    pub hapq: Option<f64>,
 }
 
 pub fn get_vartigs_from_file(file_name: &str) -> Vec<Vartig> {
@@ -58,42 +60,74 @@ pub fn get_vartigs_from_file(file_name: &str) -> Vec<Vartig> {
 
     for line in reader.lines() {
         let l = line.unwrap();
-        if l.chars().nth(0).unwrap() == '>'{
+        if l.chars().nth(0).unwrap() == '>' {
             let spl = l.split_whitespace();
             let mut vartig = Vartig::default();
             let spl_vec = spl.collect::<Vec<&str>>();
             let name = &spl_vec[0][1..];
-            let col = spl_vec[0][1..].split('_').collect::<Vec<&str>>();
-            let tmp = col[0..col.len()-1].join("_").to_string();
-            let remove = tmp.split('/').collect::<Vec<&str>>();
+            //            let tmp = col[0..col.len()-1].join("_").to_string();
+            //            let remove = tmp.split('/').collect::<Vec<&str>>();
             vartig.name = name.to_string();
-            vartig.contig = remove[remove.len()-1].to_string();
-            vartig.snprange = get_range(spl_vec[1]);
-            vartig.baserange = get_range(spl_vec[2]);
-            vartig.cov = get_val(spl_vec[3]);
-            vartig.err = get_val(spl_vec[4]);
-            vartig.hapq  = get_val(spl_vec[5]);
-            vartig.index = toret.len();
-            if !vartig.err.is_nan() && vartig.hapq > hapq_cutoff{
-                toret.push(vartig);
-                hapq_pass = true;
+
+            let re_snprange = Regex::new(r"SNPRANGE:(\d+)-(\d+)").unwrap();
+            let re_contig = Regex::new(r"[ \t]CONTIG:([^\s]+)").unwrap();
+            let re_baserange = Regex::new(r"BASERANGE:(\d+)-(\d+)").unwrap();
+            let re_cov = Regex::new(r":COV:(/\d+\.?\d*/)").unwrap();
+            let re_err = Regex::new(r"ERR:(/\d+\.?\d*/)").unwrap();
+            let re_hapq = Regex::new(r"HAPQ:(\d+)").unwrap();
+
+            let sr_cap = re_snprange.captures(&l).unwrap();
+            let contig_cap = re_contig.captures(&l);
+            let br_cap = re_baserange.captures(&l);
+            let cov_cap = re_cov.captures(&l);
+            let err_cap = re_err.captures(&l);
+            let hapq_cap = re_hapq.captures(&l);
+
+            vartig.snprange = (
+                sr_cap.get(1).unwrap().as_str().parse().unwrap(),
+                sr_cap.get(2).unwrap().as_str().parse().unwrap(),
+            );
+            let br_cap = br_cap.unwrap();
+            vartig.baserange = (
+                    br_cap.get(1).unwrap().as_str().parse().unwrap(),
+                    br_cap.get(2).unwrap().as_str().parse().unwrap(),
+                );
+            if contig_cap.is_none(){
+                vartig.contig = None;
             }
             else{
-                hapq_pass = false;
+                vartig.contig = Some(contig_cap.unwrap().get(1).unwrap().as_str().to_string());
             }
-        }
-        else if hapq_pass{
-           let bytes = l.as_bytes(); 
-           let last_vartig = toret.last_mut().unwrap();
-           for (i,c) in bytes.iter().enumerate(){
-               //question mark
-               if *c == 63 {
-//                   last_vartig.allele_vec.insert(last_vartig.snprange.0 + i,-1); 
-               }
-               else{
-                   last_vartig.allele_vec.insert(last_vartig.snprange.0 + i, (c - 48) as i8);
-               }
-           }
+            if cov_cap.is_none() {
+                vartig.cov = None;
+            } else {
+                vartig.cov = Some(cov_cap.unwrap().get(1).unwrap().as_str().parse().unwrap());
+            }
+            if err_cap.is_none() {
+                vartig.err= None;
+            } else {
+                vartig.err= Some(err_cap.unwrap().get(1).unwrap().as_str().parse().unwrap());
+            }
+            if hapq_cap.is_none() {
+                vartig.hapq = None;
+            } else {
+                vartig.hapq = Some(hapq_cap.unwrap().get(1).unwrap().as_str().parse().unwrap());
+            }
+            vartig.index = toret.len();
+            toret.push(vartig)
+        } else {
+            let bytes = l.as_bytes();
+            let last_vartig = toret.last_mut().unwrap();
+            for (i, c) in bytes.iter().enumerate() {
+                //question mark
+                if *c == 63 {
+                    //                   last_vartig.allele_vec.insert(last_vartig.snprange.0 + i,-1);
+                } else {
+                    last_vartig
+                        .allele_vec
+                        .insert(last_vartig.snprange.0 + i, (c - 48) as i8);
+                }
+            }
         }
     }
     toret

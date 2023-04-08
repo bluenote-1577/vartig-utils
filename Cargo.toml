@@ -8,6 +8,7 @@ edition = "2021"
 
 [dependencies]
 clap="3"
+regex = "1.7"
 
 
 [profile.dev]

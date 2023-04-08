@@ -103,6 +103,7 @@ for line in open(hap,'r'):
 lc = mc.LineCollection(lines, linewidths=widths, array = np.array(line_colors), cmap = cmap, alpha = 1.0)
 lc_hq = mc.LineCollection(lines, linewidths=widths, array = np.array(line_colors_hapq), cmap = cmap_hq, alpha = 1.0)
 lc_hq.set_clim(vmin=0, vmax=60)
+lc.set_clim(vmin=0, vmax=1)
 print(lc)
 
 fig, ax = plt.subplots(2)
