@@ -1,22 +1,27 @@
-use regex::Regex;
 use std::collections::HashMap;
 use std::fs::File;
 use std::hash::{Hash, Hasher};
 use std::io::{prelude::*, BufReader};
 
 fn get_range(token: &str) -> (usize, usize) {
-    let range = token.split(':').collect::<Vec<&str>>()[1]
+    let range = token
         .split('-')
         .collect::<Vec<&str>>();
     let r1 = range[0].parse::<usize>().unwrap();
     let r2 = range[1].parse::<usize>().unwrap();
-    return (r1, r2);
+    return (r1,r2);
 }
 
 fn get_val(token: &str) -> f64 {
-    let val = token.split(':').collect::<Vec<&str>>()[1];
+    let val = token;
     let ret = val.parse::<f64>().unwrap();
-    return ret;
+    return ret
+}
+
+fn get_pair(token: &str) -> (String, String){
+    let spl = token.split(':').collect::<Vec<&str>>();
+    let val = (spl[0].to_string(), spl[1].to_string());
+    val
 }
 
 #[derive(Default, Debug, Clone, PartialEq)]
@@ -69,49 +74,43 @@ pub fn get_vartigs_from_file(file_name: &str) -> Vec<Vartig> {
             //            let remove = tmp.split('/').collect::<Vec<&str>>();
             vartig.name = name.to_string();
 
-            let re_snprange = Regex::new(r"SNPRANGE:(\d+)-(\d+)").unwrap();
-            let re_contig = Regex::new(r"[ \t]CONTIG:([^\s]+)").unwrap();
-            let re_baserange = Regex::new(r"BASERANGE:(\d+)-(\d+)").unwrap();
-            let re_cov = Regex::new(r":COV:(/\d+\.?\d*/)").unwrap();
-            let re_err = Regex::new(r"ERR:(/\d+\.?\d*/)").unwrap();
-            let re_hapq = Regex::new(r"HAPQ:(\d+)").unwrap();
+            let mut tag_dict:HashMap<_,_> = HashMap::default();
+            for thing in spl_vec{
+                if thing.contains(':'){
+                    let (key, val) = get_pair(thing);
+                    tag_dict.insert(key, val);
+                }
+            }
+            
+            let snprange = tag_dict.get("SNPRANGE").unwrap();
+            vartig.snprange = get_range(snprange);
+            vartig.baserange = get_range(tag_dict.get("BASERANGE").unwrap());
+            let contig = tag_dict.get("CONTIG");
+            let cov = tag_dict.get("COV");
+            let err = tag_dict.get("ERR");
+            let hapq = tag_dict.get("HAPQ");
 
-            let sr_cap = re_snprange.captures(&l).unwrap();
-            let contig_cap = re_contig.captures(&l);
-            let br_cap = re_baserange.captures(&l);
-            let cov_cap = re_cov.captures(&l);
-            let err_cap = re_err.captures(&l);
-            let hapq_cap = re_hapq.captures(&l);
-
-            vartig.snprange = (
-                sr_cap.get(1).unwrap().as_str().parse().unwrap(),
-                sr_cap.get(2).unwrap().as_str().parse().unwrap(),
-            );
-            let br_cap = br_cap.unwrap();
-            vartig.baserange = (
-                    br_cap.get(1).unwrap().as_str().parse().unwrap(),
-                    br_cap.get(2).unwrap().as_str().parse().unwrap(),
-                );
-            if contig_cap.is_none(){
+            if contig.is_none(){
                 vartig.contig = None;
             }
             else{
-                vartig.contig = Some(contig_cap.unwrap().get(1).unwrap().as_str().to_string());
+                vartig.contig = Some(contig.unwrap().clone());
             }
-            if cov_cap.is_none() {
+
+            if cov.is_none() {
                 vartig.cov = None;
             } else {
-                vartig.cov = Some(cov_cap.unwrap().get(1).unwrap().as_str().parse().unwrap());
+                vartig.cov = Some(get_val(cov.unwrap()));
             }
-            if err_cap.is_none() {
+            if err.is_none() {
                 vartig.err= None;
             } else {
-                vartig.err= Some(err_cap.unwrap().get(1).unwrap().as_str().parse().unwrap());
+                vartig.err= Some(get_val(err.unwrap()));
             }
-            if hapq_cap.is_none() {
+            if hapq.is_none() {
                 vartig.hapq = None;
             } else {
-                vartig.hapq = Some(hapq_cap.unwrap().get(1).unwrap().as_str().parse().unwrap());
+                vartig.hapq = Some(get_val(hapq.unwrap()));
             }
             vartig.index = toret.len();
             toret.push(vartig)
