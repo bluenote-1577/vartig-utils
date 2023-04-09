@@ -1,13 +1,15 @@
 use crate::vartig::*;
 use std::collections::HashMap;
 use std::collections::HashSet;
+use fxhash::FxHashMap;
 
 fn same_diff(v1: &Vartig, v2: &Vartig) -> (f64, f64){
     let mut same = 0.;
     let mut diff = 0.;
-    for (pos,allele) in v1.allele_vec.iter(){
-        if v2.allele_vec.contains_key(pos){
-            if *allele == v2.allele_vec[pos]{
+    let (smaller,bigger) = if v1.allele_vec.len() < v2.allele_vec.len() { (&v1, &v2)} else{ (&v2, &v1)};
+    for (pos,allele) in smaller.allele_vec.iter(){
+        if bigger.allele_vec.contains_key(pos){
+            if *allele == bigger.allele_vec[pos]{
                 same += 1.;
             }
             else{
@@ -22,7 +24,7 @@ fn hit_score(v1: &Vartig, v2: &Vartig) -> f64{
     let (same,diff) = same_diff(v1,v2);
     
     //let mult = v1.err + v2.err;
-    let score = same * (0.20) - diff + 100.;
+    let score = same * (0.20) - diff;
     //let score = same - diff;
     //let score = same;
     if score.is_nan(){
@@ -72,7 +74,7 @@ fn overlap(v1: &Vartig, v2: &Vartig) -> bool{
 
 pub fn align_vartig(q_vartig: &[Vartig], r_vartig: &[Vartig]) -> Vec<VartigAln>{
     let mut all_align_hits = vec![];
-    let mut pos_to_vartig_r : HashMap<usize, Vec<&Vartig>>= HashMap::default();
+    let mut pos_to_vartig_r : FxHashMap<usize, Vec<&Vartig>>= HashMap::default();
     
     for vartig in r_vartig.iter(){
         for pos in vartig.allele_vec.keys(){
@@ -115,7 +117,6 @@ fn dp_align<'a>(q_vartig: &Vartig, vartig_hits: &Vec<&'a Vartig>) -> Vec<VartigA
     for i in 0..vartig_hits.len(){
         let hit_i = &vartig_hits[i];
         let score = hit_score(q_vartig,hit_i);
-        
         scores.push(score);
     }
     let max_band = 100;
@@ -138,6 +139,7 @@ fn dp_align<'a>(q_vartig: &Vartig, vartig_hits: &Vec<&'a Vartig>) -> Vec<VartigA
         }
         best_scores[i] = curr_best_score;
     }
+
 
     let mut clone_best_scores = best_scores.clone();
     clone_best_scores.sort_by(|x,y| y.partial_cmp(&x).unwrap());

@@ -166,13 +166,13 @@ fn main() {
         let tig1 = vartig::get_vartigs_from_file(&file_name1);
         let tig2 = vartig::get_vartigs_from_file(&file_name2);
 
-        println!("Finished reading vartig files.");
 
         //let avg_cov_1 = tig1.iter().map(|x| x.cov).sum::<f64>() / (tig1.len() as f64);
         //let avg_cov_2 = tig2.iter().map(|x| x.cov).sum::<f64>() / (tig2.len() as f64);
 
         let forward = align::align_vartig(&tig1, &tig2);
         let backward = align::align_vartig(&tig2, &tig1);
+
 
         let mut backward_match_set: HashSet<(&str, &str)> = HashSet::default();
         let mut good_matches = vec![];
@@ -250,7 +250,7 @@ fn main() {
             "total_allele_2"
         );
         println!(
-            "{:.4}\t{:.4}\t{:4.}\t{}\t{}\t{}",
+            "{:.4}\t{:.4}\t{:.4}\t{}\t{}\t{}",
             errors / total_aligned,
             total_aligned / total_alleles_1 as f64,
             total_aligned / total_alleles_2 as f64,
