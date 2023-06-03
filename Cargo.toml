@@ -9,6 +9,7 @@ edition = "2021"
 [dependencies]
 clap="3"
 fxhash="*"
+ordered-float = "2.0"
 
 
 [profile.dev]

@@ -191,14 +191,14 @@ fn dp_align<'a>(q_vartig: &Vartig, vartig_hits: &Vec<&'a Vartig>) -> Vec<VartigA
 fn align_stats(v1: &Vartig, v2: &Vartig) -> VartigAln{
     let (same,diff) = same_diff(v1,v2);
     let snp_identity = same / (same + diff);
-    let ol_len;
-    if v2.baserange.1 > v1.baserange.0{
-        ol_len = v1.baserange.1 - v2.baserange.0 + 1;
-    }
-    else{
-        ol_len = v2.baserange.1 - v1.baserange.0 + 1;
-    }
-    let gapless_base_identity = 1.0 - diff / ol_len as f64;
+//    let ol_len;
+//    if v2.baserange.1 > v1.baserange.0{
+//        ol_len = v1.baserange.1 - v2.baserange.0 + 1;
+//    }
+//    else{
+//        ol_len = v2.baserange.1 - v1.baserange.0 + 1;
+//    }
+//    let gapless_base_identity = 1.0 - diff / ol_len as f64;
     return VartigAln{
         name1: v1.name.clone(),
         name2: v2.name.clone(),
@@ -209,7 +209,7 @@ fn align_stats(v1: &Vartig, v2: &Vartig) -> VartigAln{
         base_range1: v1.baserange,
         base_range2: v2.baserange,
         snp_identity,
-        gapless_base_identity,
+        gapless_base_identity: 0.,
         cov1: v1.cov,
         cov2: v2.cov,
         same,
