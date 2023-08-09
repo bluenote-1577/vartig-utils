@@ -1,6 +1,10 @@
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
+#figure order
+#$CONTIG haplotigs/glopp-SRR13712920-ab-filter_{$CONTIG}_haplotigs.fa   haplotigs/glopp-SRR13712919-ab-filter_{$CONTIG}_haplotigs.fa haplotigs/glopp-SRR13712896-ab-filter_{$CONTIG}_haplotigs.fa  haplotigs/glopp-SRR13712866-ab-filter_{$CONTIG}_haplotigs.fa haplotigs/glopp-SRR13712899-ab-filter_{$CONTIG}_haplotigs.fa haplotigs/glopp-SRR13712885-ab-filter_{$CONTIG}_haplotigs.fa haplotigs/glopp-SRR13712854-ab-filter_{$CONTIG}_haplotigs.fa haplotigs/glopp-SRR13712844-ab-filter_{$CONTIG}_haplotigs.fa haplotigs/glopp-SRR13712833-ab-filter_{$CONTIG}_haplotigs.fa haplotigs/glopp-SRR13712822-ab-filter_{$CONTIG}_haplotigs.fa haplotigs/glopp-SRR13712918-ab-filter_{$CONTIG}_haplotigs.fa haplotigs/glopp-SRR13712908-ab-filter_{$CONTIG}_haplotigs.fa haplotigs/glopp-SRR13712907-ab-filter_{$CONTIG}_haplotigs.fa haplotigs/glopp-SRR13712905-ab-filter_{$CONTIG}_haplotigs.fa haplotigs/glopp-SRR13712904-ab-filter_{$CONTIG}_haplotigs.fa haplotigs/glopp-SRR13712903-ab-filter_{$CONTIG}_haplotigs.fa haplotigs/glopp-SRR13712906-ab-filter_{$CONTIG}_haplotigs.fa haplotigs/glopp-SRR13712902-ab-filter_{$CONTIG}_haplotigs.fa haplotigs/glopp-SRR13712901-ab-filter_{$CONTIG}_haplotigs.fa haplotigs/glopp-SRR13712900-ab-filter_{$CONTIG}_haplotigs.fa haplotigs/glopp-SRR13712897-ab-filter_{$CONTIG}_haplotigs.fa haplotigs/glopp-SRR13712874-ab-filter_{$CONTIG}_haplotigs.fa haplotigs/glopp-SRR13712873-ab-filter_{$CONTIG}_haplotigs.fa haplotigs/glopp-SRR13712898-ab-filter_{$CONTIG}_haplotigs.fa
+
+
 import cmasher as cmr
 from scipy import stats
 
