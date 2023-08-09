@@ -52,10 +52,11 @@ avg_al_c = 0
 
 hap_covs = []
 kde_weights = []
-len_cutoff = 1
+len_cutoff = 2
 cov_cutoff = 1.5
 dates = [0,3,4,5,41,48,49,301,339,346,354,360,391,446,452,473,476,516,542,553,614,622,627,636]
 vartig_to_allele_frac = dict()
+print(len(argv))
 
 p = re.compile('COV:(\d*\.?\d+)')
 snp_p = re.compile('SNPRANGE:(\d+)-(\d+)')
@@ -92,7 +93,7 @@ for hap in haps:
 
 
 avg_minor = avg_alt / avg_al_c
-print(avg_minor)
+#print(avg_minor)
 
 haps = [shlex.quote(x) for x in haps]
 
@@ -183,8 +184,8 @@ for i in range(len(hap_covs) - 1):
     ms = 1
     bw = None
 
-    print(len(kde_weights[i]))
-    print(len(hap_covs[i]))
+    #print(len(kde_weights[i]))
+    #print(len(hap_covs[i]))
     norm_vals = normal(hap_covs[i], mean_normal)
     kde_norm = stats.gaussian_kde(norm_vals, bw_method = bw, weights = kde_weights[i])
     kde_norm.bw_method = bw
@@ -219,7 +220,7 @@ for i in range(len(hap_covs) - 1):
         ax[0].scatter(twos, hap_covs[i+1], c = c, cmap = "binary", s = ms, alpha = 1)
 
 
-if len(hcs) == len(dates):
+if len(hcs) == len(dates) and ("NZ_AP024085.1" in contig or "NC_021016.1" in contig):
     ax[0].set_xticks([])
     plt.xticks(range(len(hcs)),dates, rotation='vertical')
 
@@ -235,10 +236,12 @@ ax[0].spines['right'].set_visible(False)
 ax[1].spines['top'].set_visible(False)
 ax[1].spines['right'].set_visible(False)
 
-if "NZ" in contig:
-    title = f"{contig} Faecalibacillus intestinalis"
+if "NZ_AP024085.1" in contig:
+    title = f"Faecalibacillus intestinalis"
+elif "NC_021016.1":
+    title = f"Anaerostipes hadrus"
 else:
-    title = f"{contig} Anaerostipes hadrus"
+    title = f"{contig}"
 
 ax[0].set_title(title)
 plt.xlabel("Days since first sample")
@@ -246,7 +249,6 @@ plt.xlabel("Days since first sample")
 fig.colorbar(lc, ax = ax[0], label = "Alternate allele ratio")
 fig.colorbar(lc, ax = ax[1], label = "Alternate allele ratio")
 #fig.colorbar(lc,  ax=ax[1])
-
 
 plt.tight_layout()
 plt.savefig(f"24_track_{contig}.png", dpi = 300)
