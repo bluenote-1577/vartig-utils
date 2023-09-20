@@ -11,6 +11,7 @@ clap="3"
 fxhash="*"
 ordered-float = "2.0"
 rust-htslib= { version = "*", default-features = false }
+rayon = "*"
 
 [profile.dev]
 opt-level = 3

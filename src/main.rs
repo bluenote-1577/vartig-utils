@@ -1,4 +1,6 @@
 use clap::{AppSettings, Arg, Command, SubCommand};
+use std::sync::Mutex;
+use rayon::prelude::*;
 use std::collections::HashSet;
 use vtig::align;
 use vtig::vartig;
@@ -15,17 +17,9 @@ fn main() {
                     Arg::new("vartigs1")
                         .value_name("VARTIGS FILE1")
                         .help("Vartig file output from phasing.")
-                        .index(1)
+                        .takes_value(true)
+                        .multiple_values(true)
                         .required(true)
-                        .takes_value(true),
-                )
-                .arg(
-                    Arg::new("vartigs2")
-                        .value_name("VARTIGS FILE2")
-                        .help("Vartig file output from phasing.")
-                        .index(2)
-                        .required(true)
-                        .takes_value(true),
                 )
                 .arg(
                     Arg::new("match cutoff")
@@ -55,6 +49,13 @@ fn main() {
                         .help("For vartigs generated from different VCFs, use this option and input the corresponding VCFs")
                         .short('v')
                         .multiple_values(true)
+                        .takes_value(true),
+                )
+                .arg(
+                    Arg::new("threads")
+                        .value_name("INT")
+                        .help("Number of threads")
+                        .short('t')
                         .takes_value(true),
                 )
 
@@ -92,8 +93,7 @@ fn main() {
 
     if matches.subcommand_name().unwrap() == "map" {
         let matches = matches.subcommand_matches("map").unwrap();
-        let file_name1 = matches.value_of("vartigs1").unwrap();
-        let file_name2 = matches.value_of("vartigs2").unwrap();
+        let file_names :Vec<String> = matches.values_of("vartigs1").unwrap().map(|x| x.to_string()).collect();
         let match_cutoff = matches
             .value_of("match cutoff")
             .unwrap_or("0")
@@ -106,6 +106,10 @@ fn main() {
             .unwrap_or("0")
             .parse::<f64>()
             .unwrap();
+
+        let threads = matches.value_of("threads").unwrap_or("1").parse::<usize>().unwrap();
+
+        rayon::ThreadPoolBuilder::new().num_threads(threads).build_global().unwrap();
 
         let hapq_cutoff = matches
             .value_of("hapq cutoff")
@@ -121,25 +125,6 @@ fn main() {
             vcfs = vec![None, None];
         }
 
-        let tig1 = vartig::get_vartigs_from_file(&file_name1, hapq_cutoff, vcfs[0].as_ref(), vcfs[1].as_ref());
-        let tigs2 = vartig::get_vartigs_from_file(&file_name2, hapq_cutoff, vcfs[1].as_ref(), vcfs[0].as_ref());
-
-        let forward = align::align_vartig(&tig1, &tigs2);
-        let backward = align::align_vartig(&tigs2, &tig1);
-
-        let mut backward_match_set: HashSet<(&str, &str)> = HashSet::default();
-        let mut good_matches = vec![];
-        for aln in backward.iter() {
-            backward_match_set.insert((&aln.name2, &aln.name1));
-            //dbg!(&aln.name1, &aln.name2, aln.snp_range1, aln.snp_range2, aln.same, aln.diff);
-        }
-        for aln in forward {
-            if backward_match_set.contains(&(&aln.name1, &aln.name2)) {
-                good_matches.push(aln);
-            }
-        }
-
-        let mut used_matches: HashSet<String> = HashSet::default();
         println!(
             "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
             "name1",
@@ -154,42 +139,68 @@ fn main() {
             "base_range1",
             "base_range2"
         );
-        for aln in good_matches {
-            if !used_matches.contains(&aln.name1) {
-                //println!("#{}\tLEN:{}", aln.name1, aln.vtig1_len);
-                used_matches.insert(aln.name1.clone());
-            }
-            if aln.same + aln.diff > match_cutoff  && aln.snp_identity > percent_cutoff {
-                let cov1_str = if aln.cov1.is_none() {1.} else {aln.cov1.unwrap()};
-                let cov2_str = if aln.cov2.is_none() {1.} else {aln.cov2.unwrap()};
-                println!(
-                    "{}\t{}\t{:.4}\t{}\t{}\t{:.4}\t{:.4}\t{}-{}\t{}-{}\t{}-{}\t{}-{}",
-                    aln.name1,
-                    aln.name2,
-                    aln.snp_identity,
-                    aln.same,
-                    aln.diff,
-                    cov1_str,
-                    cov2_str,
-                    aln.snp_range1.0,
-                    aln.snp_range1.1,
-                    aln.snp_range2.0,
-                    aln.snp_range2.1,
-                    aln.base_range1.0,
-                    aln.base_range1.1,
-                    aln.base_range2.0,
-                    aln.base_range2.1
-                );
-                if aln.base_range1.1 < aln.base_range2.0 || aln.base_range1.0 > aln.base_range2.1 {
-                    eprintln!("ERROR: the base ranges for the vartigs {} and {} don't overlap: {}-{},{}-{}. Are your vartig files generated from the exact same contig and VCF file?.",
-                       aln.name1, aln.name2,
-                       aln.base_range1.0,
-                       aln.base_range1.1,
-                       aln.base_range2.0,
-                       aln.base_range2.1,
-                      );
+
+        let sync = Mutex::new(true);
+        for i in 0..file_names.len(){
+            (i+1..file_names.len()).into_par_iter().for_each(|j| {
+                let tig1 = vartig::get_vartigs_from_file(&file_names[i], hapq_cutoff, vcfs[i].as_ref(), vcfs[j].as_ref());
+                let tigs2 = vartig::get_vartigs_from_file(&file_names[j], hapq_cutoff, vcfs[j].as_ref(), vcfs[i].as_ref());
+
+                let forward = align::align_vartig(&tig1, &tigs2);
+                let backward = align::align_vartig(&tigs2, &tig1);
+
+                let mut backward_match_set: HashSet<(&str, &str)> = HashSet::default();
+                let mut good_matches = vec![];
+                for aln in backward.iter() {
+                    backward_match_set.insert((&aln.name2, &aln.name1));
+                    //dbg!(&aln.name1, &aln.name2, aln.snp_range1, aln.snp_range2, aln.same, aln.diff);
                 }
-            }
+                for aln in forward {
+                    if backward_match_set.contains(&(&aln.name1, &aln.name2)) {
+                        good_matches.push(aln);
+                    }
+                }
+
+                let mut used_matches: HashSet<String> = HashSet::default();
+                let x = sync.lock().unwrap();
+                for aln in good_matches {
+                    if !used_matches.contains(&aln.name1) {
+                        //println!("#{}\tLEN:{}", aln.name1, aln.vtig1_len);
+                        used_matches.insert(aln.name1.clone());
+                    }
+                    if aln.same + aln.diff > match_cutoff  && aln.snp_identity > percent_cutoff {
+                        let cov1_str = if aln.cov1.is_none() {1.} else {aln.cov1.unwrap()};
+                        let cov2_str = if aln.cov2.is_none() {1.} else {aln.cov2.unwrap()};
+                        println!(
+                            "{}\t{}\t{:.4}\t{}\t{}\t{:.4}\t{:.4}\t{}-{}\t{}-{}\t{}-{}\t{}-{}",
+                            aln.name1,
+                            aln.name2,
+                            aln.snp_identity,
+                            aln.same,
+                            aln.diff,
+                            cov1_str,
+                            cov2_str,
+                            aln.snp_range1.0,
+                            aln.snp_range1.1,
+                            aln.snp_range2.0,
+                            aln.snp_range2.1,
+                            aln.base_range1.0,
+                            aln.base_range1.1,
+                            aln.base_range2.0,
+                            aln.base_range2.1
+                        );
+                        if aln.base_range1.1 < aln.base_range2.0 || aln.base_range1.0 > aln.base_range2.1 {
+                            eprintln!("ERROR: the base ranges for the vartigs {} and {} don't overlap: {}-{},{}-{}. Are your vartig files generated from the exact same contig and VCF file?.",
+                               aln.name1, aln.name2,
+                               aln.base_range1.0,
+                               aln.base_range1.1,
+                               aln.base_range2.0,
+                               aln.base_range2.1,
+                              );
+                        }
+                    }
+                }
+            });
         }
     }
     if matches.subcommand_name().unwrap() == "dist" {
