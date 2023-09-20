@@ -33,7 +33,31 @@ fn main() {
                         .help("Only display alignments with > this number of identical alleles.")
                         .short('m')
                         .takes_value(true),
-                ),
+                )
+                .arg(
+                    Arg::new("percent cutoff")
+                        .value_name("FLOAT")
+                        .help("Only display alignments with > percentage identity")
+                        .short('p')
+                        .takes_value(true),
+                )
+
+                .arg(
+                    Arg::new("hapq cutoff")
+                        .value_name("INT")
+                        .help("Only consider vartigs with >= this HAPQ")
+                        .long("hapq")
+                        .takes_value(true),
+                )
+                .arg(
+                    Arg::new("vcfs")
+                        .value_name("VCFS")
+                        .help("For vartigs generated from different VCFs, use this option and input the corresponding VCFs")
+                        .short('v')
+                        .multiple_values(true)
+                        .takes_value(true),
+                )
+
         )
         .subcommand(
             SubCommand::with_name("dist")
@@ -69,19 +93,36 @@ fn main() {
     if matches.subcommand_name().unwrap() == "map" {
         let matches = matches.subcommand_matches("map").unwrap();
         let file_name1 = matches.value_of("vartigs1").unwrap();
-        let file_names2 = matches.values_of("vartigs2").unwrap();
+        let file_name2 = matches.value_of("vartigs2").unwrap();
         let match_cutoff = matches
             .value_of("match cutoff")
             .unwrap_or("0")
             .parse::<f64>()
             .unwrap();
 
-        let tig1 = vartig::get_vartigs_from_file(&file_name1);
-        let mut tigs2 = vec![];
-        for file_name in file_names2 {
-            let tig2 = vartig::get_vartigs_from_file(&file_name);
-            tigs2.extend(tig2);
+
+        let percent_cutoff = matches
+            .value_of("percent cutoff")
+            .unwrap_or("0")
+            .parse::<f64>()
+            .unwrap();
+
+        let hapq_cutoff = matches
+            .value_of("hapq cutoff")
+            .unwrap_or("0")
+            .parse::<usize>()
+            .unwrap();
+
+        let vcfs : Vec<Option<String>>;
+        if let Some(values) = matches.values_of("vcfs"){
+            vcfs = values.map(|x| Some(x.to_string())).collect();
         }
+        else{
+            vcfs = vec![None, None];
+        }
+
+        let tig1 = vartig::get_vartigs_from_file(&file_name1, hapq_cutoff, vcfs[0].as_ref(), vcfs[1].as_ref());
+        let tigs2 = vartig::get_vartigs_from_file(&file_name2, hapq_cutoff, vcfs[1].as_ref(), vcfs[0].as_ref());
 
         let forward = align::align_vartig(&tig1, &tigs2);
         let backward = align::align_vartig(&tigs2, &tig1);
@@ -118,7 +159,7 @@ fn main() {
                 //println!("#{}\tLEN:{}", aln.name1, aln.vtig1_len);
                 used_matches.insert(aln.name1.clone());
             }
-            if aln.same + aln.diff > match_cutoff {
+            if aln.same + aln.diff > match_cutoff  && aln.snp_identity > percent_cutoff {
                 let cov1_str = if aln.cov1.is_none() {1.} else {aln.cov1.unwrap()};
                 let cov2_str = if aln.cov2.is_none() {1.} else {aln.cov2.unwrap()};
                 println!(
@@ -163,8 +204,8 @@ fn main() {
             .unwrap_or("0")
             .parse::<f64>()
             .unwrap();
-        let tig1 = vartig::get_vartigs_from_file(&file_name1);
-        let tig2 = vartig::get_vartigs_from_file(&file_name2);
+        let tig1 = vartig::get_vartigs_from_file(&file_name1, 0, None, None);
+        let tig2 = vartig::get_vartigs_from_file(&file_name2, 0, None, None);
 
 
         //let avg_cov_1 = tig1.iter().map(|x| x.cov).sum::<f64>() / (tig1.len() as f64);

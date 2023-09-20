@@ -10,7 +10,7 @@ edition = "2021"
 clap="3"
 fxhash="*"
 ordered-float = "2.0"
-
+rust-htslib= { version = "*", default-features = false }
 
 [profile.dev]
 opt-level = 3
