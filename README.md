@@ -1,13 +1,8 @@
 # vartig-utils - utilities for processing and visualizing vartigs
 
-
-## TODO INTERNAL - JIM
-
-This is the repo I used for generating strain tracking information and visualize vartigs. The "vartig" files below mean the glopp-out-dir/contig/haplotigs.fa file. 
-
 ## Introduction
 
-This is a companion repository for processing outputs from our software TODO. We currently support 
+This is a companion repository for processing outputs from our software Floria. We currently support 
 
 1. mapping of vartigs between samples (e.g. to track strains longitudinally)
 2. computing statistics between vartigs
