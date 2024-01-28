@@ -40,9 +40,6 @@ vtig dist vartig1 vartig2
 # find best matching vartigs between two samples
 vtig map vartig1 vartig2 -m minimum_match_length
 
-# track vartigs between samples. REQUIRES `vtig` command to be in path. 
-python track_vartigs.py CONTIG_NAME vartig1 vartig2 vartig3
-
 ```
 All above scripts/commands work **only if** vartigs are generated from **the exact same vcf and reference**. 
 
@@ -51,7 +48,17 @@ You SHOULD NOT use this for:
 1. mapping vartigs from different contigs (even from the same MAG, for example) 
 2. mapping vartigs from the same contigs, but a different VCF (you must use the *same* vcf to generate both vartigs)
 
+Note that ``track_vartigs.py`` requires:
+
+1. numpy
+2. scipy
+3. matplotlib.
+4. [cmasher](https://cmasher.readthedocs.io/user/introduction.html#how-to-install). This could be skipped, but you'll have to change the colormap used in the scripts.
+
+
 ## Output
+
+#### `vtig map`
 
 The output for `vtig map` looks like:
 ```
@@ -68,3 +75,6 @@ sample1/NZ_AP024085.1_HAP16   sample2/NZ_AP024085.1_HAP14 1.000       7       0 
 - snp_range1/2: the range of SNPs covered by the vartig
 - base_range1/2: the range of bases on the contig covered by the vartig
 
+#### `vtig dist`
+
+`vtig dist` gives statistics for **all mappings** between two sets of vartigs. 
